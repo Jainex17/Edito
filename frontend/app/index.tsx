@@ -30,9 +30,6 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoIcon}>
-            <Ionicons name="film-outline" size={40} color="#fff" />
-          </View>
           <ThemedText type="title" style={styles.title}>edito</ThemedText>
           <ThemedText style={styles.tagline}>Simple. Powerful. Creative.</ThemedText>
         </View>

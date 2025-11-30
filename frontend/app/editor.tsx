@@ -28,6 +28,10 @@ export default function EditorScreen() {
   const [editingTextContent, setEditingTextContent] = useState('');
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportMessage, setExportMessage] = useState('');
+
   
   const player = videoUri ? useVideoPlayer({ uri: videoUri }) : null;
   const timelineRef = useRef<ScrollView>(null);
@@ -182,7 +186,54 @@ export default function EditorScreen() {
       Alert.alert('Error', 'No video selected.');
       return;
     }
-    Alert.alert('Info', 'Export functionality to be implemented with backend integration.');
+
+    setIsExporting(true);
+    setExportProgress(0);
+    setExportMessage('Preparing export...');
+
+    try {
+      const { exportVideo } = await import('@/services/api');
+      
+      const result = await exportVideo(
+        videoUri,
+        overlays,
+        containerDimensions.width,
+        containerDimensions.height,
+        (stage, progress, message) => {
+          setExportProgress(progress);
+          setExportMessage(message);
+        }
+      );
+
+      if ((result.status === 'done') && result.output_url) {
+        setIsExporting(false);
+        const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+        const downloadUrl = `${API_BASE_URL}${result.output_url}`;
+        
+        Alert.alert(
+          'Export Complete!',
+          'Your video has been processed successfully. Tap Download to save it.',
+          [
+            {
+              text: 'Download',
+              onPress: async () => {
+                const { Linking } = await import('react-native');
+                await Linking.openURL(downloadUrl);
+              }
+            },
+            {
+              text: 'OK'
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      setIsExporting(false);
+      Alert.alert(
+        'Export Failed',
+        error instanceof Error ? error.message : 'An error occurred during export'
+      );
+    }
   };
 
   const togglePlayback = () => {
@@ -406,6 +457,19 @@ export default function EditorScreen() {
           </View>
         </Modal>
 
+        <Modal visible={isExporting} transparent animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <ThemedText style={styles.modalTitle}>Exporting Video</ThemedText>
+              <ThemedText style={styles.exportMessage}>{exportMessage}</ThemedText>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${exportProgress}%` }]} />
+              </View>
+              <ThemedText style={styles.exportPercentage}>{Math.round(exportProgress)}%</ThemedText>
+            </View>
+          </View>
+        </Modal>
+
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -589,5 +653,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     padding: 10,
     borderRadius: 5,
+  },
+  exportMessage: {
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#333',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+  },
+  exportPercentage: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });

@@ -4,7 +4,6 @@
     "slug": "edito",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "edito",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -22,8 +21,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
