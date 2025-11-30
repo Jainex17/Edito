@@ -2,6 +2,10 @@
 
 simple mobile editor with few tools
 
+## working video
+
+https://github.com/user-attachments/assets/2871042d-e486-4b8c-93bb-80651d0f9cc2
+
 ## Features
 
 - add text overlay and drag to position
