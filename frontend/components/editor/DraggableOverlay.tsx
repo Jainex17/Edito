@@ -15,8 +15,6 @@ const DraggableOverlay = ({
   onEdit,
   isVisible,
   isPlaying,
-  containerWidth,
-  containerHeight
 }: { 
   overlay: Overlay; 
   isSelected: boolean; 
@@ -25,8 +23,6 @@ const DraggableOverlay = ({
   onEdit: (id: string) => void;
   isVisible: boolean;
   isPlaying: boolean;
-  containerWidth: number;
-  containerHeight: number;
 }) => {
   const translateX = useSharedValue(overlay.x);
   const translateY = useSharedValue(overlay.y);
@@ -51,14 +47,13 @@ const DraggableOverlay = ({
     translateY.value = overlay.y;
     scale.value = overlay.scale || 1;
     savedScale.value = overlay.scale || 1;
-  }, [overlay.id]);
+  }, [overlay.x, overlay.y, overlay.scale]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
       runOnJS(onSelect)();
     })
     .onUpdate((e) => {
-      // No restrictions - allow overlay to move freely, even outside the canvas
       translateX.value = overlay.x + e.translationX;
       translateY.value = overlay.y + e.translationY;
     })
@@ -89,12 +84,9 @@ const DraggableOverlay = ({
   const composedGesture = Gesture.Simultaneous(panGesture, pinchGesture, tapGesture);
 
   const animatedStyle = useAnimatedStyle(() => {
-    // Position the overlay so x,y represents the center point
-    // This makes scaling happen from the center naturally
     const centerX = translateX.value + overlay.width / 2;
     const centerY = translateY.value + overlay.height / 2;
     
-    // Calculate the top-left position after scaling from center
     const scaledWidth = overlay.width * scale.value;
     const scaledHeight = overlay.height * scale.value;
     const left = centerX - scaledWidth / 2;
@@ -123,7 +115,7 @@ const DraggableOverlay = ({
             height: overlay.height,
             borderColor: isSelected ? '#007AFF' : 'transparent',
             borderWidth: isSelected ? 2 : 0,
-            zIndex: isSelected ? 100 : 1,
+            zIndex: isSelected ? 100 : (overlay.type === 'video' ? 10 : 1),
           }
         ]}
       >

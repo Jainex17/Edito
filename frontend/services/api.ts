@@ -82,6 +82,17 @@ export async function uploadVideoWithOverlays(
         content = assetFilename;
       }
 
+      if (overlay.type === 'video') {
+        const videoExtension = overlay.content.split('.').pop() || 'mp4';
+        const assetFilename = `video_asset_${i}_${Date.now()}.${videoExtension}`;
+        formData.append('assets', {
+          uri: overlay.content,
+          name: assetFilename,
+          type: `video/${videoExtension}`,
+        } as any);
+        content = assetFilename;
+      }
+
       overlaysMetadata.push({
         id: overlay.id,
         type: overlay.type,

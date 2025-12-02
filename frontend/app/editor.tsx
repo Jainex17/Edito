@@ -28,6 +28,7 @@ export default function EditorScreen() {
   const [editingTextContent, setEditingTextContent] = useState('');
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0, displayWidth: 0, displayHeight: 0, offsetX: 0, offsetY: 0 });
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportMessage, setExportMessage] = useState('');
@@ -81,6 +82,50 @@ export default function EditorScreen() {
     }
   }, [player]);
 
+  useEffect(() => {
+    if (player && containerDimensions.width > 0 && containerDimensions.height > 0) {
+      const checkVideoDimensions = setInterval(() => {
+        // @ts-ignore - videoWidth and videoHeight are available on the player
+        const videoWidth = player.videoWidth;
+        // @ts-ignore
+        const videoHeight = player.videoHeight;
+        
+        if (videoWidth && videoHeight) {
+          const videoAspect = videoWidth / videoHeight;
+          const containerAspect = containerDimensions.width / containerDimensions.height;
+          
+          let displayWidth, displayHeight, offsetX, offsetY;
+          
+          if (containerAspect > videoAspect) {
+            // Container is wider - video will have pillarboxing
+            displayHeight = containerDimensions.height;
+            displayWidth = displayHeight * videoAspect;
+            offsetX = (containerDimensions.width - displayWidth) / 2;
+            offsetY = 0;
+          } else {
+            // Container is taller - video will have letterboxing
+            displayWidth = containerDimensions.width;
+            displayHeight = displayWidth / videoAspect;
+            offsetX = 0;
+            offsetY = (containerDimensions.height - displayHeight) / 2;
+          }
+          
+          setVideoDimensions({
+            width: videoWidth,
+            height: videoHeight,
+            displayWidth,
+            displayHeight,
+            offsetX,
+            offsetY
+          });
+          clearInterval(checkVideoDimensions);
+        }
+      }, 100);
+
+      return () => clearInterval(checkVideoDimensions);
+    }
+  }, [player, containerDimensions]);
+
   const addTextOverlay = () => {
     if (!player) return;
     const newOverlay: Overlay = {
@@ -129,6 +174,13 @@ export default function EditorScreen() {
 
   const addVideoOverlay = async () => {
     if (!player) return;
+    
+    // Use videoDimensions if available, otherwise use containerDimensions as fallback
+    const overlayWidth = videoDimensions.displayWidth > 0 ? videoDimensions.displayWidth : containerDimensions.width;
+    const overlayHeight = videoDimensions.displayHeight > 0 ? videoDimensions.displayHeight : containerDimensions.height;
+    const overlayX = videoDimensions.displayWidth > 0 ? videoDimensions.offsetX : 0;
+    const overlayY = videoDimensions.displayHeight > 0 ? videoDimensions.offsetY : 0;
+    
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: true,
@@ -140,10 +192,10 @@ export default function EditorScreen() {
         id: Date.now().toString(),
         type: 'video',
         content: result.assets[0].uri,
-        x: 150,
-        y: 150,
-        width: 200,
-        height: 112,
+        x: overlayX,
+        y: overlayY,
+        width: overlayWidth,
+        height: overlayHeight,
         scale: 1,
         rotation: 0,
         startTime: currentTime,
@@ -328,8 +380,6 @@ export default function EditorScreen() {
                   onEdit={handleEdit}
                   isVisible={currentTime >= overlay.startTime && currentTime <= overlay.endTime}
                   isPlaying={isPlaying}
-                  containerWidth={containerDimensions.width}
-                  containerHeight={containerDimensions.height}
                 />
               ))}
             </View>
@@ -401,6 +451,7 @@ export default function EditorScreen() {
                 <View style={[styles.playhead, { left: currentTime * TIMELINE_SCALE }]} />
                 
                 {overlays.map((overlay, index) => (
+
                   <TimelineItem 
                     key={overlay.id}
                     overlay={overlay}
